@@ -1,3 +1,4 @@
+
 import argparse
 import os
 from . import data
@@ -16,5 +17,4 @@ def parse_args():
 
 def init(args):
     data.init()
-
 
