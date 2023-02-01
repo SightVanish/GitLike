@@ -1,4 +1,3 @@
-
 import argparse
 import os
 import sys
@@ -34,5 +33,6 @@ def hash_object(args):
     with open(args.file, 'rb') as f:
         print(data.hash_object(f.read())) # print hash code
 def cat_file(args):
-    # sys.stdout.flush()
-    sys.stdout.buffer.write(data.get_object(args.object))
+    sys.stdout.flush() # print the string in stream
+    sys.stdout.buffer.write(data.get_object(args.object, expected=None)) # write string to stream, expected=None if we don't want to verify the type
+
