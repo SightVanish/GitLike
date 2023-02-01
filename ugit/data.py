@@ -15,19 +15,32 @@ def init():
         os.makedirs(os.path.join(os.getcwd(), GIT_DIR, 'objects'))
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
 
-def hash_object(data):
+def hash_object(data, type='blob'):
     """
     Store object to a file named with its hash value(OID) in bytes.
+    type: 'blob': the default type, just a collections of bytes without any semantic meaning
     """
+    obj = type.encode() + b'\x00' + data # type + null byte + data
     oid = hashlib.sha1(data).hexdigest() # hash object and convert to binary presentation
-    os.makedirs(os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2]))
-    with open(os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2], oid[2:]), 'wb') as out:
-        out.write(data)
+    # store the object to the folder named with the top two characters of its hash value
+    dirs = os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2])
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+    with open(os.path.join(dirs, oid[2:]), 'wb') as out:
+        out.write(obj)
     return oid
 
-def get_object(oid):
+def get_object(oid, expected='blob'):
     """
-    Print object value based on its hash value(OID).
+    Print object content named by its hash value(OID).
+    Parameters: oid: hash value of object, expected: verify the object content type if expected is not None
     """
     with open(os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2], oid[2:]), 'rb') as f:
-        return f.read()
+        obj = f.read()
+    objType, _, content = obj.partition(b'\x00')
+    objType = objType.decode()
+    
+    if expected is not None and objType != expected:
+        raise ValueError("object type is {0}, expected {1}".format(objType, expected))
+    print(objType != 'blob')
+    return content

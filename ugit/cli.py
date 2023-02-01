@@ -1,8 +1,8 @@
-
 import argparse
 import os
 import sys
 from . import data
+from . import base
 
 def main():
     args = parse_args()
@@ -23,7 +23,10 @@ def parse_args():
     cat_file_parser = commands.add_parser('cat-file')
     cat_file_parser.set_defaults(func=cat_file)
     cat_file_parser.add_argument('object')
-
+    # write-tree
+    write_tree_parser = commands.add_parser('write-tree')
+    write_tree_parser.set_defaults(func=write_tree)
+    # cat_file_parser.add_argument('directory')
 
     return parser.parse_args()
 
@@ -34,5 +37,7 @@ def hash_object(args):
     with open(args.file, 'rb') as f:
         print(data.hash_object(f.read())) # print hash code
 def cat_file(args):
-    # sys.stdout.flush()
-    sys.stdout.buffer.write(data.get_object(args.object))
+    sys.stdout.flush() # print the string in stream
+    sys.stdout.buffer.write(data.get_object(args.object, expected=None)) # write string to stream, expected=None if we don't want to verify the type
+def write_tree(args):
+    base.write_tree()
