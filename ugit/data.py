@@ -16,12 +16,21 @@ def init():
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
 
 def hash_object(data, type='blob'):
+def hash_object(data, type='blob'):
     """
     Store object to a file named with its hash value(OID) in bytes.
     type: 'blob': the default type, just a collections of bytes without any semantic meaning
+    type: 'blob': the default type, just a collections of bytes without any semantic meaning
     """
     obj = type.encode() + b'\x00' + data # type + null byte + data
+    obj = type.encode() + b'\x00' + data # type + null byte + data
     oid = hashlib.sha1(data).hexdigest() # hash object and convert to binary presentation
+    # store the object to the folder named with the top two characters of its hash value
+    dirs = os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2])
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+    with open(os.path.join(dirs, oid[2:]), 'wb') as out:
+        out.write(obj)
     # store the object to the folder named with the top two characters of its hash value
     dirs = os.path.join(os.getcwd(), GIT_DIR, 'objects', oid[:2])
     if not os.path.exists(dirs):
@@ -31,7 +40,10 @@ def hash_object(data, type='blob'):
     return oid
 
 def get_object(oid, expected='blob'):
+def get_object(oid, expected='blob'):
     """
+    Print object content named by its hash value(OID).
+    Parameters: oid: hash value of object, expected: verify the object content type if expected is not None
     Print object content named by its hash value(OID).
     Parameters: oid: hash value of object, expected: verify the object content type if expected is not None
     """
