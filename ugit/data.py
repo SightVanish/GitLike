@@ -16,7 +16,6 @@ def init():
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
 
 def hash_object(data, type='blob'):
-def hash_object(data, type='blob'):
     """
     Store object to a file named with its hash value(OID) in bytes.
     type: 'blob': the default type, just a collections of bytes without any semantic meaning
@@ -39,7 +38,6 @@ def hash_object(data, type='blob'):
         out.write(obj)
     return oid
 
-def get_object(oid, expected='blob'):
 def get_object(oid, expected='blob'):
     """
     Print object content named by its hash value(OID).
