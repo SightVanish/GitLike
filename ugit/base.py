@@ -68,3 +68,8 @@ def is_ignored(path):
     # ignore '.ugit' directory
     return '.ugit' in path.split('/')
 
+def commit(message):
+    commit = 'tree {0}\nparent {1}\n\n{2}\n'.format(write_tree(), data.get_HEAD(), message)
+    oid = data.hash_object(commit.encode(), 'commit')
+    data.set_HEAD(oid)
+    return oid

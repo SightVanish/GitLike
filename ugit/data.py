@@ -14,7 +14,16 @@ def init():
         os.makedirs(GIT_DIR)
         os.makedirs(os.path.join(os.getcwd(), GIT_DIR, 'objects'))
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
-
+def set_HEAD(oid):
+    with open(os.path.join(GIT_DIR, 'HEAD'), 'w') as f:
+        f.write(oid)
+def get_HEAD():
+    path_HEAD = os.path.join(GIT_DIR, 'HEAD')
+    if os.path.isfile(path_HEAD):
+        with open(path_HEAD) as f:
+            return f.read().strip()
+    else:
+        return "This is HEAD commit"
 def hash_object(data, type='blob'):
     """
     Store object to a file named with its hash value(OID) in bytes.
