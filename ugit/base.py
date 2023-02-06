@@ -1,4 +1,7 @@
 import os
+import itertools
+import operator
+from collections import namedtuple
 from . import data
 
 def write_tree(directory='.'):
@@ -73,3 +76,21 @@ def commit(message):
     oid = data.hash_object(commit.encode(), 'commit')
     data.set_HEAD(oid)
     return oid
+
+Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # use via `Commit.tree`
+def get_commit(oid):
+    parent = None
+    commit = data.get_object(oid, 'commit').decode()
+    lines = iter(commit.splitlines())
+    for line in itertools.takewhile(operator.truth, lines): # iter until the blank line
+        key, value = line.split(' ', 1) # split once via ' '
+        if key == 'tree':
+            tree = value
+        elif key == 'parent':
+            parent = value
+        else:
+            raise ValueError("Unknown field {0}".format(key))
+    message = '\n'.join(lines) # TODO: why \n
+    return Commit(tree=tree, parent=parent, message=message)
+        
+    

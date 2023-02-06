@@ -23,7 +23,8 @@ def get_HEAD():
         with open(path_HEAD) as f:
             return f.read().strip()
     else:
-        return "This is HEAD commit"
+        # this is the first commit
+        return None
 def hash_object(data, type='blob'):
     """
     Store object to a file named with its hash value(OID) in bytes.
