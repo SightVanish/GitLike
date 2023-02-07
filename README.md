@@ -1,1 +1,1 @@
-This is a repo following [write yourself a git](https://github.com/thblt/write-yourself-a-git).
+This is a repo following [write yourself a git](https://github.com/thblt/write-yourself-a-git). The objective is to implement a functional git tool from scratch in python. I tried to give detailed code commenting so you can easily follow my ideas simply by reading code.

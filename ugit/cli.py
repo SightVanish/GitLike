@@ -47,8 +47,11 @@ def parse_args():
     log_parser.set_defaults(func=log)
     log_parser.add_argument('oid', nargs='?') # nargs='?': if there is no such value, assign to default
 
+    # move to given commit
+    checkout_parser = commands.add_parser('checkout')
+    checkout_parser.set_defaults(func=checkout)
+    checkout_parser.add_argument('oid')
     return parser.parse_args()
-
 
 def init(args):
     data.init()
@@ -68,6 +71,8 @@ def log(args):
     oid = args.oid or data.get_HEAD()
     while oid != "None":
         commit = base.get_commit(oid)
-        print("commit {0}".format(oid))
-        print(commit.message)
+        print("\033[1;33;1mcommit {0}\n\033[0m".format(oid)) # pring commit oid in highlight yellow
+        print("    {0}\n".format(commit.message))
         oid = commit.parent
+def checkout(args):
+    base.checkout(args.oid)

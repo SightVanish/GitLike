@@ -90,7 +90,10 @@ def get_commit(oid):
             parent = value
         else:
             raise ValueError("Unknown field {0}".format(key))
-    message = '\n'.join(lines) # TODO: why \n
+    message = ''.join(lines)
     return Commit(tree=tree, parent=parent, message=message)
         
-    
+def checkout(oid):
+    commit = get_commit(oid)
+    read_tree(commit.tree)
+    data.set_HEAD(oid)
