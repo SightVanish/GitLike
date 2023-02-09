@@ -14,13 +14,15 @@ def init():
         os.makedirs(GIT_DIR)
         os.makedirs(os.path.join(os.getcwd(), GIT_DIR, 'objects'))
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
-def set_HEAD(oid):
-    with open(os.path.join(GIT_DIR, 'HEAD'), 'w') as f:
+def update_ref(ref, oid):
+    ref_path = os.path.join(GIT_DIR, ref)
+    os.makedirs(os.path.dirname(ref_path), exist_ok=True)
+    with open(ref_path, 'w') as f:
         f.write(oid)
-def get_HEAD():
-    path_HEAD = os.path.join(GIT_DIR, 'HEAD')
-    if os.path.isfile(path_HEAD):
-        with open(path_HEAD) as f:
+def get_ref(ref):
+    ref_path = os.path.join(GIT_DIR, ref)
+    if os.path.isfile(ref_path):
+        with open(ref_path) as f:
             return f.read().strip()
     else:
         # this is the first commit

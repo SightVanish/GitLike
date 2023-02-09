@@ -14,6 +14,8 @@ def parse_args():
     commands = parser.add_subparsers(dest='command')
     commands.required = True
 
+    oid = base.get_oid # you can pass oid directly or use your tag via refs/tags/<tag name>
+
     # init
     init_parser = commands.add_parser('init')
     init_parser.set_defaults(func=init)
@@ -26,7 +28,7 @@ def parse_args():
     # take oid of an object and read its content
     cat_file_parser = commands.add_parser('cat-file')
     cat_file_parser.set_defaults(func=cat_file)
-    cat_file_parser.add_argument('object')
+    cat_file_parser.add_argument('object', type=oid)
 
     # hash directory tree and store the tree
     write_tree_parser = commands.add_parser('write-tree')
@@ -35,7 +37,7 @@ def parse_args():
     # take oid of a directory tree and extract it to a working directory
     read_tree_parser = commands.add_parser('read-tree')
     read_tree_parser.set_defaults(func=read_tree)
-    read_tree_parser.add_argument('tree')
+    read_tree_parser.add_argument('tree', type=oid)
 
     # commit, save a snapshot of working directory
     commit_parser = commands.add_parser('commit')
@@ -45,12 +47,19 @@ def parse_args():
     # walk the list of commits and print them
     log_parser = commands.add_parser('log')
     log_parser.set_defaults(func=log)
-    log_parser.add_argument('oid', nargs='?') # nargs='?': if there is no such value, assign to default
+    log_parser.add_argument('oid', type=oid, nargs='?') # nargs='?': if there is no such value, assign to default
 
     # move to given commit
     checkout_parser = commands.add_parser('checkout')
     checkout_parser.set_defaults(func=checkout)
-    checkout_parser.add_argument('oid')
+    checkout_parser.add_argument('oid', type=oid)
+
+    # tag customized name to a commit
+    tag_parser = commands.add_parser('tag')
+    tag_parser.set_defaults(func=tag)
+    tag_parser.add_argument('name')
+    tag_parser.add_argument('oid', type=oid, nargs='?')
+
     return parser.parse_args()
 
 def init(args):
@@ -68,7 +77,7 @@ def read_tree(args):
 def commit(args):
     print(base.commit(args.message))
 def log(args):
-    oid = args.oid or data.get_HEAD()
+    oid = args.oid or data.get_ref('HEAD')
     while oid != "None":
         commit = base.get_commit(oid)
         print("\033[1;33;1mcommit {0}\n\033[0m".format(oid)) # pring commit oid in highlight yellow
@@ -76,3 +85,6 @@ def log(args):
         oid = commit.parent
 def checkout(args):
     base.checkout(args.oid)
+def tag(args):
+    oid = args.oid or data.get_ref('HEAD')
+    base.create_tag(args.name, oid)
