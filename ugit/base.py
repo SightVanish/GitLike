@@ -2,6 +2,7 @@ import os
 import itertools
 import operator
 from collections import namedtuple
+import string
 from . import data
 
 def write_tree(directory='.'):
@@ -102,4 +103,20 @@ def create_tag(name, oid):
     data.update_ref(os.path.join('refs', 'tags', name), oid)
 
 def get_oid(name):
-    return data.get_ref(name) or name
+    if name == '@': name = 'HEAD' # make '@' an alias for 'HEAD'
+    # if name is ref
+    refs_to_try = [
+        f'{name}',
+        f'refs/{name}',
+        f'refs/tags/{name}',
+        f'refs/heads/{name}'
+    ] # we support searching different ref subdirectories
+    for ref in refs_to_try:
+        if data.get_ref(ref):
+            return data.get_ref(ref)
+    
+    # is ref is sha1
+    is_hex = all(c in string.hexdigits for c in name)
+    if len(name) == 40 and is_hex:
+        return name
+    raise ValueError("Unknown name: ".format(name))
