@@ -88,7 +88,10 @@ def get_commit(oid):
         if key == 'tree':
             tree = value
         elif key == 'parent':
-            parent = value
+            if value == 'None':
+                parent = None
+            else:
+                parent = value
         else:
             raise ValueError("Unknown field {0}".format(key))
     message = ''.join(lines)
@@ -120,3 +123,15 @@ def get_oid(name):
     if len(name) == 40 and is_hex:
         return name
     raise ValueError("Unknown name: ".format(name))
+
+def iter_commits_and_parents(oids):
+    oids = set(oids)
+    visited = set() # we only yield an OID once even if it's reached twice
+    while oids:
+        oid = oids.pop()
+        if not oid or oid in visited:
+            continue
+        visited.add(oid)
+        yield oid
+        commit = get_commit(oid)
+        oids.add(commit.parent)

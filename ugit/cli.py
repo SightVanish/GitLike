@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import textwrap
+import subprocess
 from . import data
 from . import base
 
@@ -60,6 +61,9 @@ def parse_args():
     tag_parser.add_argument('name')
     tag_parser.add_argument('oid', default='@', type=oid, nargs='?')
 
+    k_parser = commands.add_parser('k')
+    k_parser.set_defaults(func=k)
+
     return parser.parse_args()
 
 def init(args):
@@ -78,7 +82,7 @@ def commit(args):
     print(base.commit(args.message))
 def log(args):
     oid = args.oid or data.get_ref('HEAD')
-    while oid != "None":
+    while oid:
         commit = base.get_commit(oid)
         print("\033[1;33;1mcommit {0}\n\033[0m".format(oid)) # pring commit oid in highlight yellow
         print("    {0}\n".format(commit.message))
@@ -88,3 +92,21 @@ def checkout(args):
 def tag(args):
     oid = args.oid or data.get_ref('HEAD')
     base.create_tag(args.name, oid)
+def k(args):
+    dot = 'digraph commits {\n'
+    oids = set()
+    for ref_name, ref in data.iter_refs():
+        dot += '"{0}" [shape=note]\n'.format(ref_name)
+        dot += '"{0}" -> "{1}"'.format(ref_name, ref)
+        oids.add(ref)
+    for oid in base.iter_commits_and_parents(oids):
+        commit = base.get_commit(oid)
+        dot += '"{0}" [shape=box style=filled label="{1}"]\n'.format(oid, oid[:10])
+        if commit.parent:
+            dot += '"{0}" -> "{1}"\n'.format(oid, commit.parent)
+    dot += '}'
+    print(dot)
+
+    # visulize dot with online tool: http://www.webgraphviz.com/; or install dot first https://graphviz.org/download/
+    # with subprocess.Popen(['dot', '-Tgtk', '/dev/stdin'], stdin=subprocess.PIPE) as proc:
+    #     proc.communicate(dot.encode())
