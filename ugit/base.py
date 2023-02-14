@@ -6,6 +6,9 @@ import string
 from . import data
 
 def write_tree(directory='.'):
+    """
+    Scan and hash each file in directory; hash the directory and all subdirectories to ugit objects.
+    """
     entries = []
     with os.scandir(directory) as it:
         for entry in it:
@@ -25,6 +28,9 @@ def write_tree(directory='.'):
     return data.hash_object(tree.encode(), 'tree')
 
 def _iter_tree_entries(oid):
+    """
+    Iterate each line in tree object
+    """
     if oid is None:
         return
     tree = data.get_object(oid, 'tree')
@@ -33,6 +39,9 @@ def _iter_tree_entries(oid):
         yield obj_type, oid, name
     
 def get_tree(oid, base_path=''):
+    """
+    Retrive all oids and return {path: <oid of a file>}
+    """
     result = {}
     for obj_type, oid, name in _iter_tree_entries(oid):
         if ('/' in name) or (name in ('..', '.') ):
@@ -47,6 +56,9 @@ def get_tree(oid, base_path=''):
     return result
  
 def _empty_current_directory():
+    """
+    Delete all files uder current directory.
+    """
     for root, dirnames, filenames in os.walk('.', topdown=False):
         for filename in filenames:
             path = os.path.relpath(os.path.join(root, filename))
@@ -62,6 +74,10 @@ def _empty_current_directory():
                 os.rmdir(path)
 
 def read_tree(tree_oid):
+    """
+    Retrive working directory committed in tree_oid.
+    Note: read_tree will lose all uncommitted changes.
+    """
     _empty_current_directory()
     for path, oid in get_tree(tree_oid, base_path='./').items():
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -69,19 +85,28 @@ def read_tree(tree_oid):
             f.write(data.get_object(oid))
 
 def is_ignored(path):
+    """
+    Return True if the path should be ignored. (ignore '.ugit' by default)
+    """
     # ignore '.ugit' directory
     return '.ugit' in path.split('/')
 
 def commit(message):
+    """
+    Save current working directory and record parent of this commit.
+    """
     commit = 'tree {0}\nparent {1}\n\n{2}\n'.format(write_tree(), data.get_ref('HEAD'), message)
     oid = data.hash_object(commit.encode(), 'commit')
     data.update_ref('HEAD', oid)
     return oid
 
 def create_branch(name, oid):
-    data.update_ref(os.path.join('refs/heads', name), oid)
+    """
+    Create a branch in .ugit/ref/heads/
+    """
+    data.update_ref(os.path.join('refs', 'heads', name), oid)
 
-Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # use via `Commit.tree`
+Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # tree = Commit.tree
 def get_commit(oid):
     parent = None
     commit = data.get_object(oid, 'commit').decode()
@@ -101,14 +126,23 @@ def get_commit(oid):
     return Commit(tree=tree, parent=parent, message=message)
         
 def checkout(oid):
+    """
+    Retrive the working directory of this commit
+    """
     commit = get_commit(oid)
     read_tree(commit.tree)
     data.update_ref('HEAD', oid)
 
 def create_tag(name, oid):
+    """
+    Create a tag in .ugit/tags/ as an alias to oid
+    """
     data.update_ref(os.path.join('refs', 'tags', name), oid)
 
 def get_oid(name):
+    """
+    Return oid with tag=name. If name='@', treat it as 'HEAD'
+    """
     if name == '@': name = 'HEAD' # make '@' an alias for 'HEAD'
     # if name is ref
     refs_to_try = [
@@ -128,6 +162,9 @@ def get_oid(name):
     raise ValueError("Unknown name: ".format(name))
 
 def iter_commits_and_parents(oids):
+    """
+    Iterate all commits in this branch
+    """
     oids = deque(oids)
     visited = set() # we only yield an OID once even if it's reached twice
     while oids:
