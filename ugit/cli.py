@@ -61,6 +61,12 @@ def parse_args():
     tag_parser.add_argument('name')
     tag_parser.add_argument('oid', default='@', type=oid, nargs='?')
 
+    # create branch
+    branch_parser = commands.add_parser('branch')
+    branch_parser.set_defaults(func=branch)
+    branch_parser.add_argument('name')
+    branch_parser.add_argument('start_point', default='@', type=oid, nargs='?')
+
     k_parser = commands.add_parser('k')
     k_parser.set_defaults(func=k)
 
@@ -81,12 +87,10 @@ def read_tree(args):
 def commit(args):
     print(base.commit(args.message))
 def log(args):
-    oid = args.oid or data.get_ref('HEAD')
-    while oid:
+    for oid in base.iter_commits_and_parents({args.oid}):
         commit = base.get_commit(oid)
         print("\033[1;33;1mcommit {0}\n\033[0m".format(oid)) # pring commit oid in highlight yellow
         print("    {0}\n".format(commit.message))
-        oid = commit.parent
 def checkout(args):
     base.checkout(args.oid)
 def tag(args):
@@ -110,3 +114,6 @@ def k(args):
     # visulize dot with online tool: http://www.webgraphviz.com/; or install dot first https://graphviz.org/download/
     # with subprocess.Popen(['dot', '-Tgtk', '/dev/stdin'], stdin=subprocess.PIPE) as proc:
     #     proc.communicate(dot.encode())
+def branch(args):
+    base.create_branch(args.name, args.start_point)
+    print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))

@@ -1,7 +1,7 @@
 import os
 import itertools
 import operator
-from collections import namedtuple
+from collections import deque, namedtuple
 import string
 from . import data
 
@@ -78,6 +78,9 @@ def commit(message):
     data.update_ref('HEAD', oid)
     return oid
 
+def create_branch(name, oid):
+    data.update_ref(os.path.join('refs/heads', name), oid)
+
 Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # use via `Commit.tree`
 def get_commit(oid):
     parent = None
@@ -125,13 +128,14 @@ def get_oid(name):
     raise ValueError("Unknown name: ".format(name))
 
 def iter_commits_and_parents(oids):
-    oids = set(oids)
+    oids = deque(oids)
     visited = set() # we only yield an OID once even if it's reached twice
     while oids:
-        oid = oids.pop()
+        oid = oids.popleft()
         if not oid or oid in visited:
             continue
         visited.add(oid)
         yield oid
         commit = get_commit(oid)
-        oids.add(commit.parent)
+        # return parent next
+        oids.appendleft(commit.parent)
