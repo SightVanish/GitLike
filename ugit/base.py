@@ -5,6 +5,8 @@ from collections import deque, namedtuple
 import string
 from . import data
 
+Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # tree = Commit.tree
+
 def write_tree(directory='.'):
     """
     Scan and hash each file in directory; hash the directory and all subdirectories to ugit objects.
@@ -96,22 +98,15 @@ def commit(message):
     Save current working directory and record parent of this commit.
     """
     commit = 'tree {0}\n'.format(write_tree())
-    HEAD = data.get_ref('HEAD')
+    HEAD = data.get_ref('HEAD').value
     if HEAD: # if this is not the first commit
         commit += 'parent {0}\n'.format(HEAD)
     commit += '\n{0}\n'.format(message)
 
     oid = data.hash_object(commit.encode(), 'commit')
-    data.update_ref('HEAD', oid)
+    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
     return oid
 
-def create_branch(name, oid):
-    """
-    Create a branch in .ugit/refs/heads/
-    """
-    data.update_ref(os.path.join('refs', 'heads', name), oid)
-
-Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # tree = Commit.tree
 def get_commit(oid):
     """
     Read commit information
@@ -136,13 +131,19 @@ def checkout(oid):
     """
     commit = get_commit(oid)
     read_tree(commit.tree)
-    data.update_ref('HEAD', oid)
+    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
 
 def create_tag(name, oid):
     """
     Create a tag in .ugit/tags/ as an alias to oid
     """
-    data.update_ref(os.path.join('refs', 'tags', name), oid)
+    data.update_ref(os.path.join('refs', 'tags', name), data.RefValue(symbolic=False, value=oid))
+
+def create_branch(name, oid):
+    """
+    Create a branch in .ugit/refs/heads/
+    """
+    data.update_ref(os.path.join('refs', 'heads', name), data.RefValue(symbolic=False, value=oid))
 
 def get_oid(name):
     """
@@ -157,8 +158,8 @@ def get_oid(name):
         f'refs/heads/{name}'
     ] # we support searching different ref subdirectories
     for ref in refs_to_try:
-        if data.get_ref(ref):
-            return data.get_ref(ref)
+        if data.get_ref(ref, deref=False).value:
+            return data.get_ref(ref).value
     
     # is ref is sha1
     is_hex = all(c in string.hexdigits for c in name)

@@ -113,10 +113,11 @@ def k(args):
     # visualize branchs, as gitk
     dot = 'digraph commits {\n'
     oids = set()
-    for ref_name, ref in data.iter_refs():
+    for ref_name, ref in data.iter_refs(deref=False):
         dot += '"{0}" [shape=note]\n'.format(ref_name)
-        dot += '"{0}" -> "{1}"'.format(ref_name, ref)
-        oids.add(ref)
+        dot += '"{0}" -> "{1}"'.format(ref_name, ref.value)
+        if not ref.symbolic:
+            oids.add(ref.value)
     for oid in base.iter_commits_and_parents(oids):
         commit = base.get_commit(oid)
         dot += '"{0}" [shape=box style=filled label="{1}"]\n'.format(oid, oid[:10])

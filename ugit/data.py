@@ -1,7 +1,10 @@
 import os
 import hashlib
+from collections import namedtuple
 
 GIT_DIR = '.ugit'
+
+RefValue = namedtuple('RefValue', ['symbolic', 'value'])
 
 def init():
     """
@@ -15,25 +18,51 @@ def init():
         os.makedirs(os.path.join(os.getcwd(), GIT_DIR, 'objects'))
         print('Initialized empty ugit repository in %s' % os.path.join(os.getcwd(), GIT_DIR))
 
-def update_ref(ref, oid):
+def update_ref(ref, value, deref=True):
     """
     Write oid to a file in .ugit/<ref>
     """
+    ref = _get_ref_internal(ref, deref)[0] # dereference ref if ref is a symbolic ref
+    if not value.value:
+        raise TypeError('RefValue is empty: "{0}"'.format(value))
+    
+    if value.symbolic:
+        # set value of a symbolic ref as 'ref: <pointed ref>'
+        value = 'ref: {0}'.format(value.value)
+    else:
+        value = value.value
+
     ref_path = os.path.join(GIT_DIR, ref)
     os.makedirs(os.path.dirname(ref_path), exist_ok=True)
     with open(ref_path, 'w') as f:
-        f.write(oid)
+        f.write(value)
 
-def get_ref(ref):
+def get_ref(ref, deref=True):
     """
     Read file content in .ugit/<ref>
+    """
+    return _get_ref_internal(ref, deref)[1]
+
+def _get_ref_internal(ref, deref):
+    """
+    If input is a symbolic ref, return the last ref pointed by it
     """
     ref_path = os.path.join(GIT_DIR, ref)
     if os.path.isfile(ref_path):
         with open(ref_path) as f:
-            return f.read().strip()
+            value = f.read().strip()
+    else:
+        value = None
+    symbolic = bool(value) and value.startswith('ref:')
+    if symbolic:
+        # if this ref is a symbolic ref, dereference it recursively
+        value = value.split(':', 1)[1].strip()
+        if deref:
+            return _get_ref_internal(value, deref=True)
+    # return ref name, ref value
+    return ref, RefValue(symbolic=symbolic, value=value)
 
-def iter_refs():
+def iter_refs(deref=True):
     """
     Iterate all refs in .ugit/refs and 'HEAD'
     """
@@ -42,7 +71,7 @@ def iter_refs():
         root = os.path.relpath(root, GIT_DIR)
         refs.extend(os.path.join(root, name) for name in file_names)
     for ref_name in refs:
-        yield ref_name, get_ref(ref_name)
+        yield ref_name, get_ref(ref_name, deref=deref)
 
 def hash_object(data, type='blob'):
     """
