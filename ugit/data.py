@@ -32,9 +32,17 @@ def get_ref(ref):
     if os.path.isfile(ref_path):
         with open(ref_path) as f:
             return f.read().strip()
-    else:
-        # this is the first commit
-        return None
+
+def iter_refs():
+    """
+    Iterate all refs in .ugit/refs and 'HEAD'
+    """
+    refs = ['HEAD']
+    for root, _, file_names in os.walk(os.path.join(GIT_DIR, 'refs')):
+        root = os.path.relpath(root, GIT_DIR)
+        refs.extend(os.path.join(root, name) for name in file_names)
+    for ref_name in refs:
+        yield ref_name, get_ref(ref_name)
 
 def hash_object(data, type='blob'):
     """
@@ -63,14 +71,3 @@ def get_object(oid, expected='blob'):
     if expected is not None and obj_type != expected:
         raise ValueError("object type is {0}, expected {1}".format(obj_type, expected))
     return content
-
-def iter_refs():
-    """
-    Iterate all refs including 'HEAD'
-    """
-    refs = ['HEAD']
-    for root, _, file_names in os.walk(os.path.join(GIT_DIR, 'refs')):
-        root = os.path.relpath(root, GIT_DIR)
-        refs.extend(os.path.join(root, name) for name in file_names)
-    for ref_name in refs:
-        yield ref_name, get_ref(ref_name)

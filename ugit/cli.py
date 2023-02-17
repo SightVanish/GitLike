@@ -104,6 +104,11 @@ def tag(args):
     oid = args.oid or data.get_ref('HEAD')
     base.create_tag(args.name, oid)
 
+def branch(args):
+    # create branch
+    base.create_branch(args.name, args.start_point)
+    print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))
+
 def k(args):
     # visualize branchs, as gitk
     dot = 'digraph commits {\n'
@@ -123,7 +128,3 @@ def k(args):
     # with subprocess.Popen(['dot', '-Tgtk', '/dev/stdin'], stdin=subprocess.PIPE) as proc:
     #     proc.communicate(dot.encode())
 
-def branch(args):
-    # create branch
-    base.create_branch(args.name, args.start_point)
-    print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))
