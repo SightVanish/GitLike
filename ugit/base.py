@@ -7,6 +7,13 @@ from . import data
 
 Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # tree = Commit.tree
 
+def init():
+    """
+    Set HEAD point to master
+    """
+    data.init()
+    data.update_ref('HEAD', data.RefValue(symbolic=True, value='refs/heads/master'))
+
 def write_tree(directory='.'):
     """
     Scan and hash each file in directory; hash the directory and all subdirectories to ugit objects.
@@ -102,7 +109,6 @@ def commit(message):
     if HEAD: # if this is not the first commit
         commit += 'parent {0}\n'.format(HEAD)
     commit += '\n{0}\n'.format(message)
-
     oid = data.hash_object(commit.encode(), 'commit')
     data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
     return oid
@@ -152,6 +158,17 @@ def create_branch(name, oid):
     Create a branch in .ugit/refs/heads/
     """
     data.update_ref(f'refs/heads/{name}', data.RefValue(symbolic=False, value=oid))
+
+def get_branch_name():
+    """
+    Return branch name
+    """
+    HEAD = data.get_ref('HEAD', deref=False)
+    if HEAD.symbolic:
+        return os.path.relpath(HEAD.value, 'refs/heads')
+    else:
+        # detached HEAD
+        return None
 
 def get_oid(name):
     """

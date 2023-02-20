@@ -60,11 +60,14 @@ def parse_args():
     k_parser = commands.add_parser('k')
     k_parser.set_defaults(func=k)
 
+    status_parser = commands.add_parser('status')
+    status_parser.set_defaults(func=status)
+
     return parser.parse_args()
 
 def init(args):
     # init
-    data.init()
+    base.init()
 
 def hash_object(args):
     # hash object and store the value
@@ -108,6 +111,15 @@ def branch(args):
     # create branch
     base.create_branch(args.name, args.start_point)
     print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))
+
+def status(args):
+    # print branch
+    HEAD = base.get_oid('@')
+    branch = base.get_branch_name()
+    if branch:
+        print('On branch {0}'.format(branch))
+    else:
+        print('HEAD detached at {0}'.format(HEAD[:10]))
 
 def k(args):
     # visualize branchs, as gitk

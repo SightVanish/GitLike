@@ -20,12 +20,12 @@ def init():
 
 def update_ref(ref, value, deref=True):
     """
-    Write oid to a file in .ugit/<ref>
+    Create or update a ref in .ugit/<ref>
     """
-    ref = _get_ref_internal(ref, deref)[0] # dereference ref if ref is a symbolic ref
+    # dereference ref if ref is a symbolic ref, we only update the real ref 
+    ref = _get_ref_internal(ref, deref)[0] 
     if not value.value:
         raise TypeError('RefValue is empty: "{0}"'.format(value))
-    
     if value.symbolic:
         # set value of a symbolic ref as 'ref: <pointed ref>'
         value = 'ref: {0}'.format(value.value)
