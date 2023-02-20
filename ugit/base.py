@@ -125,25 +125,33 @@ def get_commit(oid):
     message = '\n'.join(lines)
     return Commit(tree=tree, parent=parent, message=message)
         
-def checkout(oid):
+def checkout(name):
     """
     Retrive the working directory of this commit
     """
+    oid = get_oid(name)
     commit = get_commit(oid)
     read_tree(commit.tree)
-    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
+    if is_branch(name):
+        HEAD = data.RefValue(symbolic=True, value=f'refs/heads/{name}')
+    else:
+        HEAD = data.RefValue(symbolic=False, value=oid)
+    data.update_ref('HEAD', HEAD, deref=False)
+
+def is_branch(branch):
+    return data.get_ref(f'refs/heads/{branch}').value is not None
 
 def create_tag(name, oid):
     """
     Create a tag in .ugit/tags/ as an alias to oid
     """
-    data.update_ref(os.path.join('refs', 'tags', name), data.RefValue(symbolic=False, value=oid))
+    data.update_ref(f'refs/tags/{name}', data.RefValue(symbolic=False, value=oid))
 
 def create_branch(name, oid):
     """
     Create a branch in .ugit/refs/heads/
     """
-    data.update_ref(os.path.join('refs', 'heads', name), data.RefValue(symbolic=False, value=oid))
+    data.update_ref(f'refs/heads/{name}', data.RefValue(symbolic=False, value=oid))
 
 def get_oid(name):
     """
