@@ -135,6 +135,10 @@ def checkout(name):
     """
     Retrive the working directory of this commit
     """
+    is_hex = all(c in string.hexdigits for c in name)
+    if len(name) == 40 and is_hex:
+        print('Note: switching to "{0}".'.format(name))
+        print('You are in "detached HEAD" state.')
     oid = get_oid(name)
     commit = get_commit(oid)
     read_tree(commit.tree)
@@ -169,6 +173,13 @@ def get_branch_name():
     else:
         # detached HEAD
         return None
+
+def iter_branch_names():
+    """
+    Iterate all branches
+    """
+    for refname, _ in data.iter_refs(prefix='refs/heads'):
+        yield os.path.relpath(refname, 'refs/heads/')
 
 def get_oid(name):
     """

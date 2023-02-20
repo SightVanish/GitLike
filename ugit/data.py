@@ -62,7 +62,7 @@ def _get_ref_internal(ref, deref):
     # return ref name, ref value
     return ref, RefValue(symbolic=symbolic, value=value)
 
-def iter_refs(deref=True):
+def iter_refs(prefix='', deref=True):
     """
     Iterate all refs in .ugit/refs and 'HEAD'
     """
@@ -71,7 +71,9 @@ def iter_refs(deref=True):
         root = os.path.relpath(root, GIT_DIR)
         refs.extend(os.path.join(root, name) for name in file_names)
     for ref_name in refs:
-        yield ref_name, get_ref(ref_name, deref=deref)
+        # only return refs starting with prefix
+        if ref_name.startswith(prefix):
+            yield ref_name, get_ref(ref_name, deref=deref)
 
 def hash_object(data, type='blob'):
     """

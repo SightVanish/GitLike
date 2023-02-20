@@ -54,7 +54,7 @@ def parse_args():
 
     branch_parser = commands.add_parser('branch')
     branch_parser.set_defaults(func=branch)
-    branch_parser.add_argument('name')
+    branch_parser.add_argument('name', nargs='?')
     branch_parser.add_argument('start_point', default='@', type=oid, nargs='?')
 
     k_parser = commands.add_parser('k')
@@ -108,9 +108,18 @@ def tag(args):
     base.create_tag(args.name, oid)
 
 def branch(args):
-    # create branch
-    base.create_branch(args.name, args.start_point)
-    print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))
+    if args.name:
+        # create branch
+        base.create_branch(args.name, args.start_point)
+        print("Branch {0} created at {1}".format(args.name, args.start_point[:10]))
+    else:
+        # list all branchs
+        current = base.get_branch_name()
+        for branch in base.iter_branch_names():
+            if branch == current:
+                print('* \033[32m{0}\033[0m'.format(branch))
+            else:
+                print('  {0}'.format(branch))
 
 def status(args):
     # print branch
@@ -119,7 +128,7 @@ def status(args):
     if branch:
         print('On branch {0}'.format(branch))
     else:
-        print('HEAD detached at {0}'.format(HEAD[:10]))
+        print('\033[31mHEAD detached at\033[0m {0}'.format(HEAD[:10]))
 
 def k(args):
     # visualize branchs, as gitk
