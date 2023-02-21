@@ -92,10 +92,28 @@ def commit(args):
     print(base.commit(args.message))
 
 def log(args):
+    refs = {}
+    # get all tags and the oid them pointing to
+    HEAD = data.get_ref('HEAD', deref=False).value
+    for refname, ref in data.iter_refs('refs/heads/'):
+        if refname == HEAD:
+            # print in blue -> green
+            refname = '\033[1;34;1m{0} -> \033[0m\033[1;32;1m{1}\033[0m'.format('HEAD', refname.split('refs/heads/', 1)[1])
+        else:
+            # print in green
+            refname = '\033[1;32;1m{0}\033[0m'.format(refname.split('refs/heads/', 1)[1])
+        refs.setdefault(ref.value, []).append(refname)
+    for refname, ref in data.iter_refs('refs/tags/'):   
+        # print in hightlight yellow
+        refname = '\033[1;33;1mtag: {0}\033[0m'.format(refname.split('refs/tags/', 1)[1])
+        refs.setdefault(ref.value, []).append(refname)
+
     # walk the list of commits and print them
     for oid in base.iter_commits_and_parents({args.oid}):
         commit = base.get_commit(oid)
-        print("\033[1;33;1mcommit {0}\n\033[0m".format(oid)) # print commit oid in highlight yellow
+        ref_str = '\033[1;33;1m, \033[0m'.join(refs[oid] if oid in refs else '')
+        # print in heightlight yellow
+        print("\033[1;33;1mcommit {0} ({1})\n\033[0m".format(oid, ref_str))
         print("    {0}\n".format(commit.message))
 
 def checkout(args):
