@@ -12,7 +12,7 @@ def init():
     Set HEAD point to master
     """
     data.init()
-    data.update_ref('HEAD', data.RefValue(symbolic=True, value='refs/heads/master'))
+    data.update_ref('HEAD', data.RefValue(symbolic=True, value='refs/heads/master'), deref=True)
 
 def write_tree(directory='.'):
     """
@@ -105,12 +105,12 @@ def commit(message):
     Save current working directory and record parent of this commit.
     """
     commit = 'tree {0}\n'.format(write_tree())
-    HEAD = data.get_ref('HEAD').value
+    HEAD = data.get_ref('HEAD', deref=True).value
     if HEAD: # if this is not the first commit
         commit += 'parent {0}\n'.format(HEAD)
     commit += '\n{0}\n'.format(message)
     oid = data.hash_object(commit.encode(), 'commit')
-    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
+    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid), deref=True)
     return oid
 
 def get_commit(oid):
@@ -195,7 +195,7 @@ def get_oid(name):
     ] # we support searching different ref subdirectories
     for ref in refs_to_try:
         if data.get_ref(ref, deref=False).value:
-            return data.get_ref(ref).value
+            return data.get_ref(ref, deref=True).value
     
     # is ref is sha1
     is_hex = all(c in string.hexdigits for c in name)
@@ -218,3 +218,9 @@ def iter_commits_and_parents(oids):
         commit = get_commit(oid)
         # return parent next
         oids.appendleft(commit.parent)
+
+def reset(oid):
+    """
+    Move HEAD and branch to chosen commit
+    """
+    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid), deref=True)
