@@ -5,6 +5,7 @@ import textwrap
 import subprocess
 from . import data
 from . import base
+from . import diff
 
 def main():
     args = parse_args()
@@ -67,6 +68,10 @@ def parse_args():
     reset_parser.set_defaults(func=reset)
     reset_parser.add_argument('commit', type=oid)
 
+    show_parser = commands.add_parser('show')
+    show_parser.set_defaults(func=show)
+    show_parser.add_argument('oid', default='@', type=oid, nargs='?')
+
     return parser.parse_args()
 
 def init(args):
@@ -97,15 +102,11 @@ def commit(args):
 
 def log(args):
     refs = {}
-    # get all tags and the oid them pointing to
+    # get all tags and branches
     HEAD = data.get_ref('HEAD', deref=False).value
     for refname, ref in data.iter_refs('refs/heads/'):
-        if refname == HEAD:
-            # print in blue -> green
-            refname = '\033[1;34;1m{0} -> \033[0m\033[1;32;1m{1}\033[0m'.format('HEAD', refname.split('refs/heads/', 1)[1])
-        else:
-            # print in green
-            refname = '\033[1;32;1m{0}\033[0m'.format(refname.split('refs/heads/', 1)[1])
+        HEAD_ref = '\033[1;34;1mHEAD -> \033[0m' if HEAD == refname else '' # print in blue
+        refname = HEAD_ref + '\033[1;32;1m{0}\033[0m'.format(refname.split('refs/heads/', 1)[1]) # print in green
         refs.setdefault(ref.value, []).append(refname)
     for refname, ref in data.iter_refs('refs/tags/'):   
         # print in hightlight yellow
@@ -115,10 +116,7 @@ def log(args):
     # walk the list of commits and print them
     for oid in base.iter_commits_and_parents({args.oid}):
         commit = base.get_commit(oid)
-        ref_str = '\033[1;33;1m, \033[0m'.join(refs[oid] if oid in refs else '')
-        # print in heightlight yellow
-        print("\033[1;33;1mcommit {0} ({1})\n\033[0m".format(oid, ref_str))
-        print("    {0}\n".format(commit.message))
+        _print_commit(oid, commit, refs.get(oid)) # refs.get(oid) will return None if oid not in refs
 
 def checkout(args):
     # move to the commit
@@ -154,7 +152,27 @@ def status(args):
 
 def reset(args):
     base.reset(args.commit)
-    
+
+def _print_commit(oid, commit, refs=None):
+    ref_str = ('\033[1;33;1m (\033[0m' + '\033[1;33;1m, \033[0m'.join(refs) +'\033[1;33;1m)\033[0m') if refs else ''
+    # print in heightlight yellow
+    print("\033[1;33;1mcommit {0}\033[0m".format(oid) + ref_str)
+    print("\n    {0}\n".format(commit.message))
+
+def show(args):
+    if not args.oid:
+        # no commit yet
+        return
+    commit = base.get_commit(args.oid)
+    parent_tree = None
+    if commit.parent:
+        parent_tree = base.get_commit(commit.parent).tree
+    _print_commit(args.oid, commit)
+    result = diff.diff_trees(
+        base.get_tree(parent_tree), base.get_tree(commit.tree)
+    )
+    print(result)
+
 def k(args):
     # visualize branchs, as gitk
     dot = 'digraph commits {\n'
