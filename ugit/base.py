@@ -135,10 +135,6 @@ def checkout(name):
     """
     Retrive the working directory of this commit
     """
-    is_hex = all(c in string.hexdigits for c in name)
-    if len(name) == 40 and is_hex:
-        print('Note: switching to "{0}".'.format(name))
-        print('You are in "detached HEAD" state.')
     oid = get_oid(name)
     commit = get_commit(oid)
     read_tree(commit.tree)
@@ -146,6 +142,8 @@ def checkout(name):
         HEAD = data.RefValue(symbolic=True, value=f'refs/heads/{name}')
     else:
         HEAD = data.RefValue(symbolic=False, value=oid)
+        print('Note: switching to "{0}".'.format(name))
+        print('You are in "detached HEAD" state.')
     data.update_ref('HEAD', HEAD, deref=False)
 
 def is_branch(branch):
