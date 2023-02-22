@@ -72,6 +72,10 @@ def parse_args():
     show_parser.set_defaults(func=show)
     show_parser.add_argument('oid', default='@', type=oid, nargs='?')
 
+    diff_parser = commands.add_parser('diff')
+    diff_parser.set_defaults(func=_diff)
+    diff_parser.add_argument('commit', default='@', type=oid, nargs='?')
+
     return parser.parse_args()
 
 def init(args):
@@ -160,6 +164,7 @@ def _print_commit(oid, commit, refs=None):
     print("\n    {0}\n".format(commit.message))
 
 def show(args):
+    # show the difference between HEAD and previous commit
     if not args.oid:
         # no commit yet
         return
@@ -171,6 +176,13 @@ def show(args):
     result = diff.diff_trees(
         base.get_tree(parent_tree), base.get_tree(commit.tree)
     )
+    sys.stdout.flush()
+    sys.stdout.buffer.write(result)
+
+def _diff(args):
+    # show the difference between working directory and specified commit
+    tree = args.commit and base.get_commit(args.commit).tree # if commit return get_commit(commit).tree
+    result = diff.diff_trees(base.get_tree(tree), base.get_working_tree())
     sys.stdout.flush()
     sys.stdout.buffer.write(result)
 

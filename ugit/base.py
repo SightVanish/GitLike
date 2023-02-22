@@ -14,6 +14,20 @@ def init():
     data.init()
     data.update_ref('HEAD', data.RefValue(symbolic=True, value='refs/heads/master'), deref=True)
 
+def get_working_tree():
+    """
+    Scan each file in working directory; hash the directory without actually writing a tree object
+    """
+    result = {}
+    for root, dirnames, filenames in os.walk('.', topdown=False):
+        for filename in filenames:
+            path = os.path.relpath(os.path.join(root, filename))
+            if is_ignored(path) or not os.path.isfile(path):
+                continue
+            with open(path, 'rb') as f:
+                result[path] = data.hash_object(f.read())
+    return result
+
 def write_tree(directory='.'):
     """
     Scan and hash each file in directory; hash the directory and all subdirectories to ugit objects.
@@ -193,7 +207,7 @@ def get_oid(name):
     ] # we support searching different ref subdirectories
     for ref in refs_to_try:
         if data.get_ref(ref, deref=False).value:
-            return data.get_ref(ref, deref=True).value
+            return data.get_ref(ref, deref=True).value # dereference here
     
     # is ref is sha1
     is_hex = all(c in string.hexdigits for c in name)
