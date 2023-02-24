@@ -153,6 +153,12 @@ def status(args):
         print('On branch {0}'.format(branch))
     else:
         print('\033[31mHEAD detached at\033[0m {0}'.format(HEAD[:10]))
+    print('\nChanges to be committed:\n')
+    HEAD_tree = HEAD and base.get_commit(HEAD).tree
+    for path, action in diff.iter_changed_files(base.get_tree(HEAD_tree), base.get_working_tree()):
+        print('    {0}: {1}'.format(action, path))
+
+
 
 def reset(args):
     base.reset(args.commit)
