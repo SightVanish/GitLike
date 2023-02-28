@@ -43,6 +43,13 @@ def get_ref(ref, deref=True):
     """
     return _get_ref_internal(ref, deref)[1]
 
+def delete_ref(ref, deref=True):
+    """
+    Remove an existing ref
+    """
+    ref = _get_ref_internal(ref, deref)[0]
+    os.remove(os.path.join(GIT_DIR, ref))
+
 def _get_ref_internal(ref, deref):
     """
     If input is a symbolic ref, return the last ref pointed by it
@@ -66,14 +73,16 @@ def iter_refs(prefix='', deref=True):
     """
     Iterate all refs in .ugit/refs and 'HEAD'
     """
-    refs = ['HEAD']
+    refs = ['HEAD', 'Merged_HEAD']
     for root, _, file_names in os.walk(os.path.join(GIT_DIR, 'refs')):
         root = os.path.relpath(root, GIT_DIR)
         refs.extend(os.path.join(root, name) for name in file_names)
     for ref_name in refs:
         # only return refs starting with prefix
         if ref_name.startswith(prefix):
-            yield ref_name, get_ref(ref_name, deref=deref)
+            ref = get_ref(ref_name, deref=deref)
+            if ref.value:
+                yield ref_name, ref
 
 def hash_object(data, type='blob'):
     """

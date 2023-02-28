@@ -4,8 +4,9 @@ import operator
 from collections import deque, namedtuple
 import string
 from . import data
+from . import diff
 
-Commit = namedtuple('Commit', ['tree', 'parent', 'message']) # tree = Commit.tree
+Commit = namedtuple('Commit', ['tree', 'parents', 'message']) # tree = Commit.tree
 
 def init():
     """
@@ -107,6 +108,16 @@ def read_tree(tree_oid):
         with open(path, 'wb') as f:
             f.write(data.get_object(oid))
 
+def read_tree_merged(t_HEAD, t_other):
+    """
+    Merge two trees and write the merged tree to working directory
+    """
+    _empty_current_directory()
+    for path, blob in diff.merge_tree(get_tree(t_HEAD), get_tree(t_other)).items():
+        os.makedirs(f'./{os.path.dirname(path)}', exist_ok=True)
+        with open(path, 'wb') as f:
+            f.write(blob)
+
 def is_ignored(path):
     """
     Return True if the path should be ignored. (ignore '.ugit' by default)
@@ -122,6 +133,12 @@ def commit(message):
     HEAD = data.get_ref('HEAD', deref=True).value
     if HEAD: # if this is not the first commit
         commit += 'parent {0}\n'.format(HEAD)
+
+    Merged_HEAD = data.get_ref('Merged_HEAD').value
+    if Merged_HEAD:
+        commit += 'parent {0}\n'.format(Merged_HEAD)
+        data.delete_ref('Merged_HEAD', deref=False)
+
     commit += '\n{0}\n'.format(message)
     oid = data.hash_object(commit.encode(), 'commit')
     data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid), deref=True)
@@ -131,7 +148,7 @@ def get_commit(oid):
     """
     Read commit information
     """
-    parent = None
+    parents = []
     commit = data.get_object(oid, 'commit').decode()
     lines = iter(commit.splitlines())
     for line in itertools.takewhile(operator.truth, lines): # iter until the blank line
@@ -139,12 +156,12 @@ def get_commit(oid):
         if key == 'tree':
             tree = value
         elif key == 'parent':
-                parent = value
+            parents.append(value)
         else:
             raise ValueError("Unknown field {0}".format(key))
     message = '\n'.join(lines)
-    return Commit(tree=tree, parent=parent, message=message)
-        
+    return Commit(tree=tree, parents=parents, message=message)
+
 def checkout(name):
     """
     Retrive the working directory of this commit
@@ -227,12 +244,25 @@ def iter_commits_and_parents(oids):
             continue
         visited.add(oid)
         yield oid
+
         commit = get_commit(oid)
-        # return parent next
-        oids.appendleft(commit.parent)
+        # note: you have to use 'extend' here because commit.parents[:1] is a list
+        oids.extendleft(commit.parents[:1]) # return first parent next
+        oids.extend(commit.parents[1:]) # return other parents later
 
 def reset(oid):
     """
     Move HEAD and branch to chosen commit
     """
     data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid), deref=True)
+
+def merge(other):
+    HEAD = data.get_ref('HEAD').value
+    if not HEAD:
+        raise Exception('HEAD is None')
+    c_HEAD = get_commit(HEAD)
+    c_other = get_commit(other)
+    data.update_ref('Merged_HEAD', data.RefValue(symbolic=False, value=other))
+    read_tree_merged(c_HEAD.tree, c_other.tree)
+    print("Merged in working tree\nPlease commit")
+    

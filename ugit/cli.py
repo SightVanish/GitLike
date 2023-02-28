@@ -76,6 +76,10 @@ def parse_args():
     diff_parser.set_defaults(func=_diff)
     diff_parser.add_argument('commit', default='@', type=oid, nargs='?')
 
+    merge_parser = commands.add_parser('merge')
+    merge_parser.set_defaults(func=merge)
+    merge_parser.add_argument('commit', type=oid)
+
     return parser.parse_args()
 
 def init(args):
@@ -132,6 +136,7 @@ def tag(args):
     base.create_tag(args.name, oid)
 
 def branch(args):
+    # TODO: add delete branch
     if args.name:
         # create branch
         base.create_branch(args.name, args.start_point)
@@ -153,12 +158,15 @@ def status(args):
         print('On branch {0}'.format(branch))
     else:
         print('\033[31mHEAD detached at\033[0m {0}'.format(HEAD[:10]))
+
+    Merged_HEAD = data.get_ref('Merged_HEAD').value
+    if Merged_HEAD:
+        print('Merging with {0}'.format(Merged_HEAD[:10]))
+
     print('\nChanges to be committed:\n')
     HEAD_tree = HEAD and base.get_commit(HEAD).tree
     for path, action in diff.iter_changed_files(base.get_tree(HEAD_tree), base.get_working_tree()):
         print('    {0}: {1}'.format(action, path))
-
-
 
 def reset(args):
     base.reset(args.commit)
@@ -176,8 +184,8 @@ def show(args):
         return
     commit = base.get_commit(args.oid)
     parent_tree = None
-    if commit.parent:
-        parent_tree = base.get_commit(commit.parent).tree
+    if commit.parents:
+        parent_tree = base.get_commit(commit.parents[0]).tree
     _print_commit(args.oid, commit)
     result = diff.diff_trees(
         base.get_tree(parent_tree), base.get_tree(commit.tree)
@@ -192,6 +200,9 @@ def _diff(args):
     sys.stdout.flush()
     sys.stdout.buffer.write(result)
 
+def merge(args):
+    base.merge(args.commit)
+
 def k(args):
     # visualize branchs, as gitk
     dot = 'digraph commits {\n'
@@ -204,11 +215,10 @@ def k(args):
     for oid in base.iter_commits_and_parents(oids):
         commit = base.get_commit(oid)
         dot += '"{0}" [shape=box style=filled label="{1}"]\n'.format(oid, oid[:10])
-        if commit.parent:
-            dot += '"{0}" -> "{1}"\n'.format(oid, commit.parent)
+        for parent in commit.parents:
+            dot += '"{0}" -> "{1}"\n'.format(oid, parent)
     dot += '}'
     print(dot)
     # visulize dot with online tool: http://www.webgraphviz.com/; or install dot https://graphviz.org/download/
     # with subprocess.Popen(['dot', '-Tgtk', '/dev/stdin'], stdin=subprocess.PIPE) as proc:
     #     proc.communicate(dot.encode())
-

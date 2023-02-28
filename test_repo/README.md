@@ -1,2 +1,2 @@
-This is a test directory for ugit.
-main 3
+This is from main
+1
