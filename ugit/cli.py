@@ -80,6 +80,11 @@ def parse_args():
     merge_parser.set_defaults(func=merge)
     merge_parser.add_argument('commit', type=oid)
 
+    merge_base_parser = commands.add_parser('merge-base')
+    merge_base_parser.set_defaults(func=merge_base)
+    merge_base_parser.add_argument('commit1', type=oid)
+    merge_base_parser.add_argument('commit2', type=oid)
+
     return parser.parse_args()
 
 def init(args):
@@ -201,7 +206,12 @@ def _diff(args):
     sys.stdout.buffer.write(result)
 
 def merge(args):
+    # merge a branch to current branch
     base.merge(args.commit)
+
+def merge_base(args):
+    # find first common ancestor of two commits
+    print(base.get_merge_base(args.commit1, args.commit2))
 
 def k(args):
     # visualize branchs, as gitk

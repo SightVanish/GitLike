@@ -236,6 +236,7 @@ def iter_commits_and_parents(oids):
     """
     Iterate all commits in this branch
     """
+    # note: because oid is showed as a string, you have to pass oids as an iterable object like {oid1, oid2}
     oids = deque(oids)
     visited = set() # we only yield an OID once even if it's reached twice
     while oids:
@@ -265,4 +266,12 @@ def merge(other):
     data.update_ref('Merged_HEAD', data.RefValue(symbolic=False, value=other))
     read_tree_merged(c_HEAD.tree, c_other.tree)
     print("Merged in working tree\nPlease commit")
-    
+
+def get_merge_base(oid1, oid2):
+    """
+    Find first common ancestor of two commits
+    """
+    parents1 = set(iter_commits_and_parents({oid1}))
+    for oid in iter_commits_and_parents({oid2}):
+        if oid in parents1:
+            return oid
