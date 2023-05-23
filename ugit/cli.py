@@ -141,7 +141,6 @@ def tag(args):
     base.create_tag(args.name, oid)
 
 def branch(args):
-    # TODO: add delete branch
     if args.name:
         # create branch
         base.create_branch(args.name, args.start_point)
@@ -210,7 +209,7 @@ def merge(args):
     base.merge(args.commit)
 
 def merge_base(args):
-    # find first common ancestor of two commits
+    # find the first common ancestor of two commits
     print(base.get_merge_base(args.commit1, args.commit2))
 
 def k(args):

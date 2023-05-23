@@ -64,7 +64,7 @@ def _iter_tree_entries(oid):
     
 def get_tree(oid, base_path=''):
     """
-    Retrive all oids and return {path: <oid of a file>}
+    Retrive all oids and return {path: <oid of a file>}.
     """
     result = {}
     for obj_type, oid, name in _iter_tree_entries(oid):
@@ -99,8 +99,8 @@ def _empty_current_directory():
 
 def read_tree(tree_oid):
     """
-    Retrive working directory committed in tree_oid
-    Note: read_tree will lose all uncommitted changes
+    Retrive working directory committed in tree_oid.
+    Note: read_tree will lose all uncommitted changes.
     """
     _empty_current_directory()
     for path, oid in get_tree(tree_oid, base_path='./').items():
@@ -108,19 +108,20 @@ def read_tree(tree_oid):
         with open(path, 'wb') as f:
             f.write(data.get_object(oid))
 
-def read_tree_merged(t_HEAD, t_other):
+def read_tree_merged(t_base, t_HEAD, t_other):
     """
-    Merge two trees and write the merged tree to working directory
+    Merge two trees and write the merged tree to working directorys.
+    Note: this is a three-way merge. t_HEAD and t_other are merged based on their common ancestor, t_base.
     """
     _empty_current_directory()
-    for path, blob in diff.merge_tree(get_tree(t_HEAD), get_tree(t_other)).items():
+    for path, blob in diff.merge_trees(get_tree(t_base), get_tree(t_HEAD), get_tree(t_other)).items():
         os.makedirs(f'./{os.path.dirname(path)}', exist_ok=True)
         with open(path, 'wb') as f:
             f.write(blob)
 
 def is_ignored(path):
     """
-    Return True if the path should be ignored. (ignore '.ugit' by default)
+    Return True if the path should be ignored. (ignore '.ugit' by default).
     """
     # ignore '.ugit' directory
     return '.ugit' in path.split('/')
@@ -146,7 +147,7 @@ def commit(message):
 
 def get_commit(oid):
     """
-    Read commit information
+    Read commit information.
     """
     parents = []
     commit = data.get_object(oid, 'commit').decode()
@@ -164,7 +165,7 @@ def get_commit(oid):
 
 def checkout(name):
     """
-    Retrive the working directory of this commit
+    Retrive the working directory of this commit.
     """
     oid = get_oid(name)
     commit = get_commit(oid)
@@ -182,7 +183,7 @@ def is_branch(branch):
 
 def create_tag(name, oid):
     """
-    Create a tag in .ugit/tags/ as an alias to oid
+    Create a tag in .ugit/tags/ as an alias to oid.
     """
     data.update_ref(f'refs/tags/{name}', data.RefValue(symbolic=False, value=oid))
 
@@ -194,7 +195,7 @@ def create_branch(name, oid):
 
 def get_branch_name():
     """
-    Return branch name
+    Return branch name.
     """
     HEAD = data.get_ref('HEAD', deref=False)
     if HEAD.symbolic:
@@ -205,14 +206,14 @@ def get_branch_name():
 
 def iter_branch_names():
     """
-    Iterate all branches
+    Iterate all branches.
     """
     for refname, _ in data.iter_refs(prefix='refs/heads'):
         yield os.path.relpath(refname, 'refs/heads/')
 
 def get_oid(name):
     """
-    Return oid with tag=name. If name='@', treat it as 'HEAD'
+    Return oid with tag=name. If name='@', treat it as 'HEAD'.
     """
     if name == '@': name = 'HEAD' # make '@' an alias for 'HEAD'
     # if name is ref
@@ -234,7 +235,7 @@ def get_oid(name):
 
 def iter_commits_and_parents(oids):
     """
-    Iterate all commits in this branch
+    Iterate all commits in this branch.
     """
     # note: because oid is showed as a string, you have to pass oids as an iterable object like {oid1, oid2}
     oids = deque(oids)
@@ -253,7 +254,7 @@ def iter_commits_and_parents(oids):
 
 def reset(oid):
     """
-    Move HEAD and branch to chosen commit
+    Move HEAD and branch to chosen commit.
     """
     data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid), deref=True)
 
@@ -261,10 +262,11 @@ def merge(other):
     HEAD = data.get_ref('HEAD').value
     if not HEAD:
         raise Exception('HEAD is None')
+    c_base = get_commit(get_merge_base(other, HEAD))
     c_HEAD = get_commit(HEAD)
     c_other = get_commit(other)
     data.update_ref('Merged_HEAD', data.RefValue(symbolic=False, value=other))
-    read_tree_merged(c_HEAD.tree, c_other.tree)
+    read_tree_merged(c_base.tree, c_HEAD.tree, c_other.tree)
     print("Merged in working tree\nPlease commit")
 
 def get_merge_base(oid1, oid2):
@@ -272,6 +274,7 @@ def get_merge_base(oid1, oid2):
     Find first common ancestor of two commits
     """
     parents1 = set(iter_commits_and_parents({oid1}))
+    # iterate over all parents of the oid1 until we find a parent that is a parent of oid2
     for oid in iter_commits_and_parents({oid2}):
         if oid in parents1:
             return oid
